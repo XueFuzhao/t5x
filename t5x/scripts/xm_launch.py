@@ -117,7 +117,7 @@ async def main(_, gin_args: Dict[str, Any]):
     tensorboard = None
     executor = xm_local.Vertex(
         requirements=xm.JobRequirements(tpu_v3=_TPU_CORES.value,
-                                       location=europe-west4),
+                                       location='europe-west4'),
         tensorboard=tensorboard,
     )
 
