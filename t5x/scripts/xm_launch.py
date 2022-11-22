@@ -116,7 +116,8 @@ async def main(_, gin_args: Dict[str, Any]):
     #     base_output_directory=_MODEL_DIR.value)
     tensorboard = None
     executor = xm_local.Vertex(
-        requirements=xm.JobRequirements(tpu_v3=_TPU_CORES.value),
+        requirements=xm.JobRequirements(tpu_v3=_TPU_CORES.value,
+                                       location=europe-west4),
         tensorboard=tensorboard,
     )
 
