@@ -11,3 +11,6 @@ network.T5Config:
   num_decoder_layers = 24
   head_dim = 64
   mlp_dim = 10240
+
+partitioning.PjitPartitioner:
+  num_partitions = 2
