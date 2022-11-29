@@ -20,4 +20,4 @@ train_script.train:
   eval_period = 2000
 
 partitioning.PjitPartitioner:
-  num_partitions = 2
+  num_partitions = 4
