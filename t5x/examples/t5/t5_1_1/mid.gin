@@ -1,6 +1,6 @@
 # T5.1.1 Mid model.
 
-include 't5x/examples/t5/t5_1_1/mid.gin'  # imports vocab, optimizer and model.
+include 't5x/examples/t5/t5_1_1/base.gin'  # imports vocab, optimizer and model.
 
 # ------------------- Network specification overrides --------------------------
 network.Transformer.config = @network.T5Config()
