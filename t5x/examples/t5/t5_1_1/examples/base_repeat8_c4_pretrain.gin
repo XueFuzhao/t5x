@@ -2,6 +2,8 @@
 from __gin__ import dynamic_registration
 import t5.data.mixtures
 import __main__ as train_script
+import seqio
+from t5x import utils
 
 
 include 't5x/examples/t5/t5_1_1/base.gin'
@@ -18,4 +20,6 @@ BATCH_SIZE = 128
 
 train_script.train:
   eval_period = 2000
-  train_dataset_cfg.split = 'train[:2.5%]'
+  
+train/utils.DatasetConfig:
+  split = 'train[:2.5%]'
