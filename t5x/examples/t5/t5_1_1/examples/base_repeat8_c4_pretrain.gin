@@ -15,7 +15,7 @@ TRAIN_STEPS = 2097152
 DROPOUT_RATE = 0.0
 BATCH_SIZE = 128
 
-train/DatasetConfig.split = 'train[:2.5%]'
 
 train_script.train:
   eval_period = 2000
+  train_dataset_cfg.split = 'train[:2.5%]'
