@@ -20,6 +20,3 @@ BATCH_SIZE = 128
 
 train_script.train:
   eval_period = 2000
-  
-train/utils.DatasetConfig:
-  split = 'train[:2%]'
