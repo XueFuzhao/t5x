@@ -17,11 +17,7 @@ DROPOUT_RATE = 0.0
 BATCH_SIZE = 128
 
 train/utils.DatasetConfig:
-  batch_size = 128
-  use_cached = False
-  pack = True
   split = 'train[:1%]'
-  seed = 0
 
 train_script.train:
   eval_period = 2000
