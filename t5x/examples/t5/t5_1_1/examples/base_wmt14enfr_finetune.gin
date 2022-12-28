@@ -14,7 +14,7 @@ BATCH_SIZE = 128
 MIXTURE_OR_TASK_NAME = "wmt14_enfr_v003"
 TASK_FEATURE_LENGTHS = {'inputs': 256, 'targets': 256}
 DROPOUT_RATE = 0.1
-TRAIN_STEPS = 544288  # 524288 pre-trained steps + 20000 fine-tuning steps.
+TRAIN_STEPS = 724288  # 524288 pre-trained steps + 200000 fine-tuning steps.
 USE_CACHED_TASKS = False
 
 # INITIAL_CHECKPOINT_PATH = "gs://t5-data/pretrained_models/t5x/t5_1_1_base/checkpoint_1000000"
@@ -28,7 +28,7 @@ INITIAL_CHECKPOINT_PATH = "gs://fuzhao/t5x/c4-base/steps_500K_20221125/checkpoin
 LOSS_NORMALIZING_FACTOR = 14592
 
 train_script.train:
-  eval_period = 1000
+  eval_period = 5000
 
 train_script.train:
   train_dataset_cfg = @train/utils.DatasetConfig()
