@@ -25,7 +25,7 @@ INITIAL_CHECKPOINT_PATH = "gs://fuzhao/t5x/c4-base/steps_500K_20221125/checkpoin
 # using Mesh Tensorflow (e.g. the public T5 / mT5 / ByT5 models), this should be
 # set to `pretraining batch_size` * `target_token_length`. For T5 and T5.1.1:
 # `2048 * 114`. For mT5: `1024 * 229`. For ByT5: `1024 * 189`.
-LOSS_NORMALIZING_FACTOR = 14592
+# LOSS_NORMALIZING_FACTOR = 14592
 
 train_script.train:
   eval_period = 5000
