@@ -17,7 +17,7 @@ DROPOUT_RATE = 0.0
 BATCH_SIZE = 128
 
 train/utils.DatasetConfig:
-  split = 'train[:356317]'
+  split = 'train[:310635]'
 
 train_script.train:
   eval_period = 2000
