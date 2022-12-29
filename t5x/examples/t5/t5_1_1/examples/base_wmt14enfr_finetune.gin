@@ -11,7 +11,7 @@ include 't5x/configs/runs/finetune.gin'
 include 't5x/examples/t5/t5_1_1/base.gin'
 
 BATCH_SIZE = 128
-MIXTURE_OR_TASK_NAME = "wmt14_enfr_v003"
+MIXTURE_OR_TASK_NAME = "wmt15_enfr_v003"
 TASK_FEATURE_LENGTHS = {'inputs': 256, 'targets': 256}
 DROPOUT_RATE = 0.1
 TRAIN_STEPS = 724288  # 524288 pre-trained steps + 200000 fine-tuning steps.
