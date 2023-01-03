@@ -1,7 +1,9 @@
 # Register necessary SeqIO Tasks/Mixtures.
 from __gin__ import dynamic_registration
 import t5.data.mixtures
+from t5x import partitioning
 import __main__ as train_script
+from t5x import utils
 
 
 include 't5x/examples/t5/t5_1_1/xl.gin'
@@ -15,6 +17,11 @@ TRAIN_STEPS = 524288
 DROPOUT_RATE = 0.0
 BATCH_SIZE = 128
 
+train/utils.DatasetConfig:
+  split = 'train'
 
 train_script.train:
   eval_period = 2000
+
+partitioning.PjitPartitioner:
+  num_partitions = 4
