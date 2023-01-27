@@ -547,7 +547,7 @@ class MoEEmbed(nn.Module):
         jnp.float32,
         axes=('moe_embed', 'vocab', 'embed'))
 
-  def __call__(self, inputs: Array, embed_select_decision: Optional[Array]) -> Array:
+  def __call__(self, inputs: Array, embed_select_decision: Optional[Array]=None) -> Array:
     """Embeds the inputs along the last dimension.
 
     Args:
