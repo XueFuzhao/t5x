@@ -22,7 +22,8 @@ r"""This script runs inference-evaluation on a T5X-compatible model.
 
 import functools
 import os
-from typing import Callable, Mapping, Optional, Sequence, Tuple, Type
+import re
+from typing import Callable, Collection, Mapping, Optional, Sequence, Set, Tuple, Type
 
 # pylint:disable=g-import-not-at-top
 # TODO(adarob): Re-enable once users are notified and tests are updated.
@@ -31,11 +32,13 @@ from absl import logging
 from clu import metric_writers
 import jax
 import seqio
+from t5x import checkpoints
 from t5x import gin_utils
 from t5x import models
 from t5x import partitioning
 from t5x import train_state as train_state_lib
 from t5x import utils
+from tensorflow.io import gfile
 from typing_extensions import Protocol
 
 # Automatically search for gin files relative to the T5X package.
@@ -167,6 +170,22 @@ class InferenceEvaluator:
     return all_metrics
 
 
+def _sorted_ckpt_paths(ckpt_paths: Collection[str]) -> Sequence[str]:
+  def _extract_ckpt_step(ckpt_path: str) -> int:
+    match = re.search(r'checkpoint_(\d+)', ckpt_path)
+    assert match is not None
+    return int(match.group(1))
+
+  return sorted(ckpt_paths, key=_extract_ckpt_step)
+
+
+def _load_evaluated_ckpt_paths(eval_ckpt_path: str) -> Set[str]:
+  if not gfile.exists(eval_ckpt_path):
+    return set()
+  with gfile.GFile(eval_ckpt_path, 'r') as f:
+    return set(f.read().split())
+
+
 def evaluate(
     *,
     model: models.BaseTransformerModel,
@@ -200,13 +219,11 @@ def evaluate(
       set to True. If None, parameter initialization is not allowed during model
       loading and having fallback_to_scratch enabled will result in an error.
   """
+  jax.monitoring.record_event('/jax/t5x/evaluate/beacon')
   logging.info('Process ID: %d', jax.process_index())
   if dataset_cfg.module:
     utils.import_module(dataset_cfg.module)
   batch_size = dataset_cfg.batch_size
-
-  # TODO(b/234480674): GDA not supported for eval.
-  restore_checkpoint_cfg.use_gda = False
 
   summarize_config_fn(model_dir=output_dir, summary_writer=None, step=0)
 
@@ -218,7 +235,8 @@ def evaluate(
       log_dir=output_dir)
   if not evaluator.eval_tasks:
     raise ValueError(
-        f"'{dataset_cfg.mixture_or_task_name}' has no metrics for evaluation.")
+        f"'{dataset_cfg.mixture_or_task_name}' has no metrics for evaluation, "
+        "or this mixture/task doesn't have provided split.")
 
   # ----------------------------------------------------------------------------
   # T5X model loading.
@@ -244,9 +262,38 @@ def evaluate(
   # Disable strictness since we are dropping the optimizer state.
   restore_checkpoint_cfg.strict = False
 
+  # Skip checkpoints that have already been evaluated.
+  eval_ckpt_path = os.path.join(
+      output_dir, f'eval.{dataset_cfg.mixture_or_task_name}.ckpt')
+  if restore_checkpoint_cfg.mode == 'all' and gfile.exists(eval_ckpt_path):
+    logging.info('Found evaluation checkpoint: %s', eval_ckpt_path)
+
+    ckpt_dirs = ([restore_checkpoint_cfg.path] if isinstance(
+        restore_checkpoint_cfg.path, str) else restore_checkpoint_cfg.path)
+    ckpt_paths = set()
+    for ckpt_dir in ckpt_dirs:
+      if not gfile.isdir(ckpt_dir):
+        raise ValueError(
+            f"Checkpoint path '{ckpt_dir}' must be a valid directory when using "
+            "restore mode 'all'.")
+      ckpt_paths.update(
+          checkpoints.get_checkpoint_dir(ckpt_dir, step)
+          for step in checkpoints.all_steps(ckpt_dir))
+
+    evaluated_ckpt_paths = _load_evaluated_ckpt_paths(eval_ckpt_path)
+
+    logging.info(
+        'Skipping evaluated checkpoints:\n %s',
+        '\n '.join(_sorted_ckpt_paths(ckpt_paths & evaluated_ckpt_paths)),
+    )
+    restore_checkpoint_cfg.mode = 'specific'
+    restore_checkpoint_cfg.path = _sorted_ckpt_paths(
+        ckpt_paths - evaluated_ckpt_paths
+    )
+
   if fallback_init_rng is not None:
     fallback_init_rng = jax.random.PRNGKey(fallback_init_rng)
-  for train_state in train_state_initializer.from_checkpoints(
+  for train_state, ckpt_path in train_state_initializer.from_checkpoints(
       [restore_checkpoint_cfg], init_rng=fallback_init_rng):
 
     # ----------------------------------------------------------------------------
@@ -259,6 +306,12 @@ def evaluate(
     all_metrics.result()  # Ensure metrics are finished being computed.
     # Wait until computations are done before continuing.
     utils.sync_global_devices(f'step_{host_step}:complete')
+    if jax.process_index() == 0:
+      # Read/write/replace rather than append to avoid filesystem issue.
+      evaluated_ckpt_paths = _load_evaluated_ckpt_paths(eval_ckpt_path)
+      evaluated_ckpt_paths.add(ckpt_path)
+      with gfile.GFile(eval_ckpt_path, 'w') as f:
+        f.write('\n'.join(_sorted_ckpt_paths(evaluated_ckpt_paths)))
 
   logging.info('Finished.')
 

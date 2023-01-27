@@ -32,7 +32,6 @@ os.environ['FLAX_PROFILE'] = 'true'
 os.environ['FLAX_LAZY_RNG'] = 'no'
 from absl import logging
 from clu import metric_writers
-import clu.data
 import jax
 from jax import random
 from jax.experimental import multihost_utils
@@ -60,6 +59,7 @@ P = partitioning.PartitionSpec
 TRAIN_METRIC_KEY = 'train'
 # String keys that is acceptable from config.
 _ACTION_KEYS = frozenset(trainer_lib.ActionMode.__members__.keys())
+_IMPORT_TIME = time.time()
 
 
 def run_actions(
@@ -105,7 +105,7 @@ def train(
     total_steps: int,
     eval_steps: int,
     eval_period: int,
-    stats_period: Optional[int] = 1,
+    stats_period: Optional[int] = None,
     random_seed: Optional[int],
     use_hardware_rng: bool = False,
     summarize_config_fn: Callable[[str, metric_writers.MetricWriter, int],
@@ -121,6 +121,7 @@ def train(
         utils.TrainStateInitializer] = utils.TrainStateInitializer,
     use_gda: bool = True,
     use_jax_array: bool = False,
+    use_orbax: bool = False,
     verify_matching_vocabs_fn: Optional[
         Callable[[utils.DatasetConfig, models.BaseTransformerModel],
                  None]] = utils.verify_matching_vocabs,
@@ -183,6 +184,7 @@ def train(
     use_gda: if True, uses GlobalDeviceArray. Experimental feature.
     use_jax_array: if True, uses jax.Array if use_gda is also True. Experimental
       feature.
+    use_orbax: if True, uses Orbax for checkpointing. Experimental feature.
     verify_matching_vocabs_fn: Function to validate whether the task vocabulary
       matches the model vocabulary. Should raise an exception on error.
     gc_period: The number of train steps between runs of the garbage collector.
@@ -191,6 +193,7 @@ def train(
   Returns:
     The tuple of (last_step, last_train_state).
   """
+  jax.monitoring.record_event('/jax/t5x/train/beacon')
   logging.info('Process ID: %d', jax.process_index())
   tf.io.gfile.makedirs(model_dir)
 
@@ -207,6 +210,11 @@ def train(
       jax.config.update('jax_array', True)
     else:
       jax.config.update('jax_parallel_functions_output_gda', True)
+
+  if use_orbax:
+    logging.info('Checkpointing with Orbax enabled.')
+    if not use_gda:
+      raise ValueError('Must set of `use_gda` if `use_orbax` is enabled.')
 
   # Each "epoch" of the training loop should be the min of the eval period,
   # checkpoint period or the full training.
@@ -274,18 +282,16 @@ def train(
 
   train_iter = get_dataset_fn(train_dataset_cfg, ds_shard_id, num_ds_shards,
                               model.FEATURE_CONVERTER_CLS)
-  if isinstance(train_iter, tf.data.Dataset):
-    train_iter = clu.data.TfDatasetIterator(train_iter, checkpoint=True)
-  elif not isinstance(train_iter, clu.data.dataset_iterator.DatasetIterator):
-    raise ValueError(
-        f'get_dataset_fn returned unsupported type {type(train_iter)}.')
+  train_iter = utils.prepare_train_iter(
+      train_iter,
+      checkpoint_cfg=checkpoint_cfg,
+      use_gda=use_gda,
+      partitioner=partitioner,
+      data_layout=data_layout)
 
   input_shapes = jax.tree_map(lambda x: (data_layout.batch_size, *x.shape[1:]),
                               train_iter.element_spec)
   input_types = jax.tree_map(lambda x: x.dtype, train_iter.element_spec)
-
-  if use_gda:
-    train_iter = utils.GDADatasetIterator(train_iter, partitioner, input_shapes)
 
   if train_eval_dataset_cfg:
     _verify_matching_vocabs(train_eval_dataset_cfg)
@@ -355,21 +361,41 @@ def train(
       restore_cfgs)
   if len(restore_paths) > 1:
     raise ValueError('Multiple restore paths not permitted in training.')
-  checkpoint_manager = utils.LegacyCheckpointManager(
-      save_cfg=checkpoint_cfg.save,
-      restore_cfg=valid_restore_cfg,
-      train_state_shape=train_state_initializer.global_train_state_shape,
-      partitioner=partitioner,
-      ds_iter=train_iter,
-      model_dir=model_dir,
-      use_gda=use_gda)
 
-  train_state = checkpoint_manager.restore(
-      restore_paths, valid_restore_cfg,
-      utils.get_fallback_state(
-          valid_restore_cfg,
-          lambda rng: train_state_initializer.from_scratch(rng).state_dict(),
-          init_rng))
+  def _init(rng):
+    return train_state_initializer.from_scratch(rng).state_dict()
+
+  # Skip initialization if neither save nor restore is requested.
+  train_state = None
+  if valid_restore_cfg or checkpoint_period:
+    if use_orbax:
+      checkpoint_manager = utils.create_checkpoint_manager(
+          save_cfg=checkpoint_cfg.save,
+          restore_cfg=valid_restore_cfg,
+          train_state=train_state_initializer.global_train_state_shape,
+          partitioner=partitioner,
+          ds_iter=train_iter,
+          model_dir=model_dir,
+      )
+      train_state = utils.restore(
+          checkpoint_manager, restore_paths, valid_restore_cfg,
+          utils.get_fallback_state(valid_restore_cfg, _init, init_rng))
+    else:
+      checkpoint_manager = utils.LegacyCheckpointManager(
+          save_cfg=checkpoint_cfg.save,
+          restore_cfg=valid_restore_cfg,
+          train_state_shape=train_state_initializer.global_train_state_shape,
+          partitioner=partitioner,
+          ds_iter=train_iter,
+          model_dir=model_dir,
+          use_gda=use_gda)
+      train_state = checkpoint_manager.restore(
+          restore_paths, valid_restore_cfg,
+          utils.get_fallback_state(valid_restore_cfg, _init, init_rng))
+
+  # Start warming up the input pipeline in the background. This must happen
+  # after input pipeline checkpoints were restored.
+  first_batch_ready = train_iter.peek_async()
 
   # 3. If no checkpoint to restore, init from scratch.
   train_state = train_state or train_state_initializer.from_scratch(init_rng)
@@ -391,7 +417,7 @@ def train(
   # Trainer
   # ---------------------------------------------------------------------------
 
-  trainer: trainer_lib.BaseTrainer = trainer_cls(
+  trainer: trainer_lib.BaseTrainer = trainer_cls(  # pytype: disable=wrong-arg-types
       model=model,
       train_state=train_state,
       partitioner=partitioner,
@@ -492,9 +518,18 @@ def train(
 
   # Save checkpoints before the training loop starts.
   if checkpoint_period:
-    logging.info('Saving checkpoint before the training loop starts.')
-    checkpoint_manager.save(trainer.train_state,
-                            checkpoint_cfg.save.state_transformation_fns)
+    # If not using Orbax, always save checkpoint, otherwise, only save a
+    # checkpoint if a checkpoint does not already exist for that step. This is
+    # because Orbax will error out if we try to save a checkpoint that already
+    # exists.
+    if not use_orbax or (
+        use_orbax
+        and utils.get_local_data(trainer.train_state.step)
+        not in checkpoint_manager.all_steps()
+    ):
+      logging.info('Saving checkpoint before the training loop starts.')
+      checkpoint_manager.save(trainer.train_state,
+                              checkpoint_cfg.save.state_transformation_fns)
 
   # If we take manual control of the garbage collector, we need to disable it
   # before starting training.
@@ -542,9 +577,16 @@ def train(
 
   def _as_gda(spec):
     dummy = np.ones((data_layout.batch_size, *spec.shape[1:]), spec.dtype)
-    return GlobalDeviceArray.from_callback(dummy.shape, partitioner.mesh,
-                                           partitioner.data_partition_spec,
-                                           lambda idx: dummy[idx])
+    if jax.config.jax_array:
+      return jax.make_array_from_callback(
+          dummy.shape,
+          jax.sharding.NamedSharding(partitioner.mesh,
+                                     partitioner.data_partition_spec),
+          lambda idx: dummy[idx])
+    else:
+      return GlobalDeviceArray.from_callback(dummy.shape, partitioner.mesh,
+                                             partitioner.data_partition_spec,
+                                             lambda idx: dummy[idx])
 
   # Construct dummy batch for compiling the model.
   if use_gda:
@@ -558,6 +600,23 @@ def train(
 
   assert isinstance(dummy_batch, Mapping)
   trainer.compile_train(dummy_batch)
+
+  # ----------------------------------------------------------------------------
+  # Warmup input pipeline.
+  # ----------------------------------------------------------------------------
+  train_iter_warmup_tick = time.time()
+  # We are cheating here. The input pipeline already started warmup when
+  # first_batch_ready was created. The warmup was then interleaved with the
+  # model compilation above. We just measure the additional time needed.
+  first_batch_ready.result()
+  train_iter_warmup_tock = time.time()
+  train_metrics.write_scalar('timing/train_iter_warmup',
+                             train_iter_warmup_tock - train_iter_warmup_tick,
+                             host_step)
+
+  jax.monitoring.record_event_duration_secs(
+      '/jax/t5x/train/time_before_first_step_secs',
+      time.time() - _IMPORT_TIME)
 
   # Main Loop over "epochs".
   for epoch in range(first_epoch, num_epochs):
@@ -707,7 +766,6 @@ if __name__ == '__main__':
   flags.DEFINE_integer('process_index', None, help='Index of this process.')
 
 
-
   def main(argv: Sequence[str]):
     """Wrapper for pdb post mortems."""
     _main(argv)
@@ -717,14 +775,13 @@ if __name__ == '__main__':
     if len(argv) > 1:
       raise app.UsageError('Too many command-line arguments.')
 
+    # OOM fix. Prevents TF from seeing GPUs to stop conflict with JAX.
+    # This must go after InitGoogle(), which is called by
+    # gin_utils.run(main).
+    tf.config.experimental.set_visible_devices([], 'GPU')
+
 
     if FLAGS.multiprocess_gpu:
-      if (FLAGS.coordinator_address is None or FLAGS.process_count is None or
-          FLAGS.process_index is None):
-        raise ValueError(
-            '`coordinator_address`, `process_count` and `process_index` '
-            'must be provided alongside `multiprocess_gpu`')
-
       logging.info(
           'Initializing distributed system for multi-host GPU:\n'
           '  coordinator_address: %s\n  process_count: %s\n  process_index: %s',
