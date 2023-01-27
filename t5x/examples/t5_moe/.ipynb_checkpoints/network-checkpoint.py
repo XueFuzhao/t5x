@@ -194,7 +194,8 @@ class Encoder(nn.Module):
         name='relpos_bias')
 
     # [batch, length] -> [batch, length, emb_dim]
-    x, embed_select_decision = self.shared_embedding(encoder_input_tokens.astype('int32'))
+    x, embed_select_decision = self.shared_embedding(
+        encoder_input_tokens.astype('int32'), deterministic=deterministic)
     x = nn.Dropout(
         rate=cfg.dropout_rate, broadcast_dims=(-2,))(
             x, deterministic=deterministic)
@@ -238,7 +239,10 @@ class Decoder(nn.Module):
         name='relpos_bias')
 
     # [batch, length] -> [batch, length, emb_dim]
-    y = self.shared_embedding(decoder_input_tokens.astype('int32'), embed_select_decision)
+    y = self.shared_embedding(
+        decoder_input_tokens.astype('int32'),
+        deterministic=deterministic,
+        embed_select_decision)
     y = nn.Dropout(
         rate=cfg.dropout_rate, broadcast_dims=(-2,))(
             y, deterministic=deterministic)

@@ -547,7 +547,9 @@ class MoEEmbed(nn.Module):
         jnp.float32,
         axes=('moe_embed', 'vocab', 'embed'))
 
-  def __call__(self, inputs: Array, embed_select_decision: Optional[Array]=None) -> Array:
+  def __call__(self, inputs: Array,
+               deterministic: bool = False,
+               embed_select_decision: Optional[Array]=None) -> Array:
     """Embeds the inputs along the last dimension.
 
     Args:
@@ -562,6 +564,7 @@ class MoEEmbed(nn.Module):
     if not jnp.issubdtype(inputs.dtype, jnp.integer):
       raise ValueError('Input type must be an integer or unsigned integer.')
     if self.one_hot:
+      if de
       routing_rng = self.make_rng('dropout')
       embed_select_decision = jax.random.randint(key=routing_rng,
                                                  shape=[inputs.shape[0]],
