@@ -564,9 +564,11 @@ class MoEEmbed(nn.Module):
     if not jnp.issubdtype(inputs.dtype, jnp.integer):
       raise ValueError('Input type must be an integer or unsigned integer.')
     if self.one_hot:
-      if de
-      routing_rng = self.make_rng('dropout')
-      embed_select_decision = jax.random.randint(key=routing_rng,
+      if deterministic:
+        embed_select_decision = jnp.zeros([inputs.shape[0]], self.dtype)
+      else:
+        routing_rng = self.make_rng('dropout')
+        embed_select_decision = jax.random.randint(key=routing_rng,
                                                  shape=[inputs.shape[0]],
                                                  min_val=0,
                                                  max_val=self.moe_emb_num)
