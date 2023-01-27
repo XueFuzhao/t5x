@@ -4,7 +4,7 @@ from __gin__ import dynamic_registration
 import seqio
 from t5x import adafactor
 from t5x import models
-from t5x.examples.t5 import network
+from t5x.examples.t5_moe import network
 
 # ------------------- Loss HParam ----------------------------------------------
 Z_LOSS = 0.0001
