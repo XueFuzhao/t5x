@@ -241,7 +241,7 @@ class Decoder(nn.Module):
     # [batch, length] -> [batch, length, emb_dim]
     y = self.shared_embedding(
         decoder_input_tokens.astype('int32'),
-        deterministic=deterministic,
+        deterministic,
         embed_select_decision)
     y = nn.Dropout(
         rate=cfg.dropout_rate, broadcast_dims=(-2,))(
