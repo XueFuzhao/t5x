@@ -29,6 +29,7 @@ class T5Config:
   # Activation dtypes.
   dtype: Any = jnp.float32
   emb_dim: int = 512
+  moe_emb_num: int = 16
   num_heads: int = 8
   num_encoder_layers: int = 6
   num_decoder_layers: int = 6
@@ -193,7 +194,7 @@ class Encoder(nn.Module):
         name='relpos_bias')
 
     # [batch, length] -> [batch, length, emb_dim]
-    x = self.shared_embedding(encoder_input_tokens.astype('int32'))
+    x, embed_select_decision = self.shared_embedding(encoder_input_tokens.astype('int32'))
     x = nn.Dropout(
         rate=cfg.dropout_rate, broadcast_dims=(-2,))(
             x, deterministic=deterministic)
@@ -206,7 +207,7 @@ class Encoder(nn.Module):
           name=f'layers_{lyr}')(x, encoder_mask, deterministic)
 
     x = layers.LayerNorm(dtype=cfg.dtype, name='encoder_norm')(x)
-    return nn.Dropout(rate=cfg.dropout_rate)(x, deterministic=deterministic)
+    return nn.Dropout(rate=cfg.dropout_rate)(x, deterministic=deterministic), embed_select_decision
 
 
 class Decoder(nn.Module):
@@ -217,6 +218,7 @@ class Decoder(nn.Module):
   @nn.compact
   def __call__(self,
                encoded,
+               embed_select_decision,
                decoder_input_tokens,
                decoder_positions=None,
                decoder_mask=None,
@@ -236,7 +238,7 @@ class Decoder(nn.Module):
         name='relpos_bias')
 
     # [batch, length] -> [batch, length, emb_dim]
-    y = self.shared_embedding(decoder_input_tokens.astype('int32'))
+    y = self.shared_embedding(decoder_input_tokens.astype('int32'), embed_select_decision)
     y = nn.Dropout(
         rate=cfg.dropout_rate, broadcast_dims=(-2,))(
             y, deterministic=deterministic)
@@ -261,10 +263,11 @@ class Decoder(nn.Module):
 
     # [batch, length, emb_dim] -> [batch, length, vocab_size]
     if cfg.logits_via_embedding:
-      # Use the transpose of embedding matrix for logit transform.
-      logits = self.shared_embedding.attend(y)
-      # Correctly normalize pre-softmax logits for this shared case.
-      logits = logits / jnp.sqrt(y.shape[-1])
+      raise NotImplementedError
+      # # Use the transpose of embedding matrix for logit transform.
+      # logits = self.shared_embedding.attend(y)
+      # # Correctly normalize pre-softmax logits for this shared case.
+      # logits = logits / jnp.sqrt(y.shape[-1])
     else:
       logits = layers.DenseGeneral(
           cfg.vocab_size,
@@ -281,9 +284,10 @@ class Transformer(nn.Module):
 
   def setup(self):
     cfg = self.config
-    self.shared_embedding = layers.Embed(
+    self.shared_embedding = layers.MoEEmbed(
         num_embeddings=cfg.vocab_size,
         features=cfg.emb_dim,
+        moe_emb_num=cfg.moe_emb_num,
         dtype=cfg.dtype,
         attend_dtype=jnp.float32,  # for logit training stability
         embedding_init=nn.initializers.normal(stddev=1.0),
@@ -315,11 +319,14 @@ class Transformer(nn.Module):
               dtype=cfg.dtype))
 
     return self.encoder(
-        encoder_input_tokens, encoder_mask, deterministic=not enable_dropout)
+        encoder_input_tokens,
+        encoder_mask,
+        deterministic=not enable_dropout)
 
   def decode(
       self,
       encoded,
+      embed_select_decision,
       encoder_input_tokens,  # only needed for masks
       decoder_input_tokens,
       decoder_target_tokens,
@@ -366,6 +373,7 @@ class Transformer(nn.Module):
 
     logits = self.decoder(
         encoded,
+        embed_select_decision,
         decoder_input_tokens=decoder_input_tokens,
         decoder_positions=decoder_positions,
         decoder_mask=decoder_mask,
@@ -407,13 +415,14 @@ class Transformer(nn.Module):
     Returns:
       logits array from full transformer.
     """
-    encoded = self.encode(
+    encoded, embed_select_decision = self.encode(
         encoder_input_tokens,
         encoder_segment_ids=encoder_segment_ids,
         enable_dropout=enable_dropout)
 
     return self.decode(
         encoded,
+        embed_select_decision,
         encoder_input_tokens,  # only used for masks
         decoder_input_tokens,
         decoder_target_tokens,
