@@ -572,12 +572,12 @@ class MoEEmbed(nn.Module):
                                                  shape=[inputs.shape[0]],
                                                  min_val=0,
                                                  max_val=self.moe_emb_num)
-      iota = lax.iota(jnp.int32, self.moe_emb_num)
-      embed_select_decision = jnp.array(embed_select_decision[..., jnp.newaxis] == iota, dtype=self.dtype)
+      embed_select_decision = nn.one_hot(embed_select_decision, self.moe_emb_num)
+      print(embed_select_decision.shape)
       iota = lax.iota(jnp.int32, self.num_embeddings)
       one_hot = jnp.array(inputs[..., jnp.newaxis] == iota, dtype=self.dtype)
       output = jnp.dot(one_hot[jnp.newaxis, ...], jnp.asarray(self.embedding, self.dtype))
-      output = jnp.dot(embed_select_decision.T[..., jnp.newaxis], output)
+      output = jnp.dot(embed_select_decision.T[..., jnp.newaxis, jnp.newaxis], output)
       
     else:
       output = jnp.asarray(self.embedding, self.dtype)[inputs]
