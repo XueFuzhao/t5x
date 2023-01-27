@@ -547,7 +547,7 @@ class MoEEmbed(nn.Module):
         jnp.float32,
         axes=('moe_embed', 'vocab', 'embed'))
 
-  def __call__(self, inputs: Array) -> Array:
+  def __call__(self, inputs: Array, embed_select_decision: Optional[Array]) -> Array:
     """Embeds the inputs along the last dimension.
 
     Args:
@@ -562,13 +562,22 @@ class MoEEmbed(nn.Module):
     if not jnp.issubdtype(inputs.dtype, jnp.integer):
       raise ValueError('Input type must be an integer or unsigned integer.')
     if self.one_hot:
+      routing_rng = self.make_rng('dropout')
+      embed_select_decision = jax.random.randint(key=routing_rng,
+                                                 shape=[inputs.shape[0]],
+                                                 min_val=0,
+                                                 max_val=self.moe_emb_num)
+      iota = lax.iota(jnp.int32, self.moe_emb_num)
+      embed_select_decision = jnp.array(embed_select_decision[..., jnp.newaxis] == iota, dtype=self.dtype)
       iota = lax.iota(jnp.int32, self.num_embeddings)
       one_hot = jnp.array(inputs[..., jnp.newaxis] == iota, dtype=self.dtype)
-      output = jnp.dot(one_hot, jnp.asarray(self.embedding, self.dtype))
+      output = jnp.dot(one_hot[jnp.newaxis, ...], jnp.asarray(self.embedding, self.dtype))
+      output = jnp.dot(embed_select_decision.T[..., jnp.newaxis], output)
+      
     else:
       output = jnp.asarray(self.embedding, self.dtype)[inputs]
       output = with_sharding_constraint(output, ('batch', 'length', 'embed'))
-    return output
+    return output, embed_select_decision
 
   def attend(self, query: Array) -> Array:
     """Attend over the embedding using a query array.
