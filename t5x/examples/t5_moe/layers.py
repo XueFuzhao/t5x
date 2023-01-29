@@ -574,7 +574,7 @@ class MoEEmbed(nn.Module):
                                                  shape=[inputs.shape[0]],
                                                  min_val=0,
                                                  max_val=self.moe_emb_num)
-        print(embed_select_decision)
+        print(embed_select_decision.shape)
         embed_select_decision = with_sharding_constraint(embed_select_decision, ('batch'))
         moe_iota = lax.iota(jnp.int32, self.moe_emb_num)
         embed_select_decision = jnp.array(embed_select_decision[..., jnp.newaxis] == moe_iota, dtype=self.dtype)
