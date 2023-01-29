@@ -572,8 +572,8 @@ class MoEEmbed(nn.Module):
           routing_rng = self.make_rng('dropout')
           embed_select_decision = jax.random.randint(key=routing_rng,
                                                  shape=[inputs.shape[0]],
-                                                 min_val=0,
-                                                 max_val=self.moe_emb_num)
+                                                 minval=0,
+                                                 maxval=self.moe_emb_num)
         print(embed_select_decision.shape)
         embed_select_decision = with_sharding_constraint(embed_select_decision, ('batch',))
         moe_iota = lax.iota(jnp.int32, self.moe_emb_num)
