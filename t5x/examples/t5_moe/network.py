@@ -239,7 +239,7 @@ class Decoder(nn.Module):
         name='relpos_bias')
 
     # [batch, length] -> [batch, length, emb_dim]
-    y = self.shared_embedding(
+    y, _ = self.shared_embedding(
         decoder_input_tokens.astype('int32'),
         deterministic,
         embed_select_decision)

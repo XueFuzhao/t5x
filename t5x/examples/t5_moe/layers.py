@@ -1,3 +1,4 @@
+
 # Copyright 2022 The T5X Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -564,21 +565,21 @@ class MoEEmbed(nn.Module):
     if not jnp.issubdtype(inputs.dtype, jnp.integer):
       raise ValueError('Input type must be an integer or unsigned integer.')
     if self.one_hot:
-      if deterministic:
-        embed_select_decision = jnp.zeros([inputs.shape[0]], self.dtype)
-      else:
-        routing_rng = self.make_rng('dropout')
-        embed_select_decision = jax.random.randint(key=routing_rng,
+      if embed_select_decision is None:
+        if deterministic:
+          embed_select_decision = jnp.zeros([inputs.shape[0]], self.dtype)
+        else:
+          routing_rng = self.make_rng('dropout')
+          embed_select_decision = jax.random.randint(key=routing_rng,
                                                  shape=[inputs.shape[0]],
                                                  min_val=0,
                                                  max_val=self.moe_emb_num)
       
-      embed_select_decision = with_sharding_constraint(embed_select_decision, ('batch'))
-      moe_iota = lax.iota(jnp.int32, self.moe_emb_num)
-      embed_select_decision = jnp.array(embed_select_decision[..., jnp.newaxis] == moe_iota, dtype=self.dtype)
+        embed_select_decision = with_sharding_constraint(embed_select_decision, ('batch'))
+        moe_iota = lax.iota(jnp.int32, self.moe_emb_num)
+        embed_select_decision = jnp.array(embed_select_decision[..., jnp.newaxis] == moe_iota, dtype=self.dtype)
       # embed_select_decision = nn.one_hot(embed_select_decision, self.moe_emb_num)
       embed_select_decision = with_sharding_constraint(embed_select_decision, ('batch', 'moe_embed'))
-      print(embed_select_decision.shape)
       iota = lax.iota(jnp.int32, self.num_embeddings)
       one_hot = jnp.array(inputs[..., jnp.newaxis] == iota, dtype=self.dtype)
       
