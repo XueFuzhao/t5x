@@ -580,7 +580,7 @@ class MoEEmbed(nn.Module):
       iota = lax.iota(jnp.int32, self.num_embeddings)
       one_hot = jnp.array(inputs[..., jnp.newaxis] == iota, dtype=self.dtype)
       
-      output = jnp.dot(one_hot[jnp.newaxis, ...], jnp.asarray(self.embedding, self.dtype))
+      output = jnp.dot(one_hot, jnp.asarray(self.embedding, self.dtype))
       output = jnp.einsum('blme,bm->ble', output, embed_select_decision)
       output = with_sharding_constraint(output, ('batch', 'length', 'embed'))
       # output = jnp.dot(embed_select_decision.expand_dims(1)[..., jnp.newaxis], output)
