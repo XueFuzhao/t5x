@@ -525,6 +525,8 @@ class Adafactor(OptimizerDef):
     step = state.step
     # We assume that params, param_states, and grads are all dict-like here.
     params_flat_dict = utils.flatten_dict_string_keys(params)
+    print("==========================================")
+    print("Trainable keys include: ", params_flat_dict.keys())
     params_paths = params_flat_dict.keys()
     params_flat = params_flat_dict.values()
     # extra paranoia to guarantee identical value ordering
