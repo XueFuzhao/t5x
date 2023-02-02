@@ -492,9 +492,10 @@ class Adafactor(OptimizerDef):
       new_m = beta1 * state.m + (1.0 - beta1) * subtrahend
       subtrahend = new_m
       updates['m'] = new_m.astype(self.dtype_momentum)
+    print('===================================================')
+    print('path:', path)
     if path == 'token_embedder/embedding':
       new_param = param
-      print('===================================================')
       print('Token Embedding is skipped')
     elif weight_decay_rate is not None:
       new_param = (1.0 - weight_decay_rate) * param - subtrahend
