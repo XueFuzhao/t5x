@@ -492,8 +492,11 @@ class Adafactor(OptimizerDef):
       new_m = beta1 * state.m + (1.0 - beta1) * subtrahend
       subtrahend = new_m
       updates['m'] = new_m.astype(self.dtype_momentum)
-
-    if weight_decay_rate is not None:
+    if path == 'token_embedder/embedding':
+      new_param = param
+      print('===================================================')
+      print('Token Embedding is skipped')
+    elif weight_decay_rate is not None:
       new_param = (1.0 - weight_decay_rate) * param - subtrahend
     else:
       new_param = param - subtrahend
@@ -525,15 +528,12 @@ class Adafactor(OptimizerDef):
     step = state.step
     # We assume that params, param_states, and grads are all dict-like here.
     params_flat_dict = utils.flatten_dict_string_keys(params)
-    params_flat_dict.pop('token_embedder/embedding')
     params_paths = params_flat_dict.keys()
     params_flat = params_flat_dict.values()
     # extra paranoia to guarantee identical value ordering
     states_flat = utils.flatten_dict_string_keys(state.param_states)
-    states_flat.pop('token_embedder/embedding')
     states_flat = [states_flat[k] for k in params_paths]
     grads_flat = utils.flatten_dict_string_keys(grads)
-    grads_flat.pop('token_embedder/embedding')
     grads_flat = [grads_flat[k] for k in params_paths]
 
     if hyper_params.global_norm_clip_threshold:
