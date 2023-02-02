@@ -530,8 +530,10 @@ class Adafactor(OptimizerDef):
     params_flat = params_flat_dict.values()
     # extra paranoia to guarantee identical value ordering
     states_flat = utils.flatten_dict_string_keys(state.param_states)
+    states_flat.pop('token_embedder/embedding')
     states_flat = [states_flat[k] for k in params_paths]
     grads_flat = utils.flatten_dict_string_keys(grads)
+    grads_flat.pop('token_embedder/embedding')
     grads_flat = [grads_flat[k] for k in params_paths]
 
     if hyper_params.global_norm_clip_threshold:
