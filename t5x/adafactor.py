@@ -492,12 +492,12 @@ class Adafactor(OptimizerDef):
       new_m = beta1 * state.m + (1.0 - beta1) * subtrahend
       subtrahend = new_m
       updates['m'] = new_m.astype(self.dtype_momentum)
-    print('===================================================')
-    print('path:', path)
-    if path == 'token_embedder/embedding':
-      new_param = param
-      print('Token Embedding is skipped')
-    elif weight_decay_rate is not None:
+#     print('===================================================')
+#     print('path:', path)
+#     if path == 'token_embedder/embedding':
+#       new_param = param
+#       print('Token Embedding is skipped')
+    if weight_decay_rate is not None:
       new_param = (1.0 - weight_decay_rate) * param - subtrahend
     else:
       new_param = param - subtrahend
@@ -555,6 +555,10 @@ class Adafactor(OptimizerDef):
     new_params_flat, new_states_flat = list(zip(*out)) if out else ((), ())
     new_params_flat = {k: v for k, v in zip(params_paths, new_params_flat)}
     new_states_flat = {k: v for k, v in zip(params_paths, new_states_flat)}
+    print("=============================================")
+    print("params_paths:", params_paths)
+    new_params_flat['token_embedder/embedding'] = params_flat['token_embedder/embedding']
+    new_states_flat['token_embedder/embedding'] = states_flat['token_embedder/embedding']
     new_params = _restore(params, new_params_flat)
     new_param_states = _restore(params, new_states_flat)
     new_state = OptimizerState(step + 1, new_param_states)
