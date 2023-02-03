@@ -557,8 +557,8 @@ class Adafactor(OptimizerDef):
     new_states_flat = {k: v for k, v in zip(params_paths, new_states_flat)}
     print("=============================================")
     print("params_paths:", params_paths)
-    new_params_flat[-1] = params_flat[-1]
-    new_states_flat[-1] = states_flat[-1]
+    new_params_flat['token_embedder/embedding'] = list(params_flat)[-1]
+    new_states_flat['token_embedder/embedding'] = list(states_flat)[-1]
     new_params = _restore(params, new_params_flat)
     new_param_states = _restore(params, new_states_flat)
     new_state = OptimizerState(step + 1, new_param_states)
