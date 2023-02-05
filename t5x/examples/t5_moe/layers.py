@@ -597,7 +597,7 @@ class MoEEmbed(nn.Module):
           
           embeddings = jax.numpy.mean(jnp.asarray(self.embedding, self.dtype), axis=0)
           embeddings = with_sharding_constraint(embeddings, ('vocab', 'embed'))
-          iota = lax.iota(jnp.int32, embeddings)
+          iota = lax.iota(jnp.int32, self.num_embeddings)
           one_hot = jnp.array(inputs[..., jnp.newaxis] == iota, dtype=self.dtype)
           output = jnp.dot(one_hot, jnp.asarray(embeddings, self.dtype))
       else:
