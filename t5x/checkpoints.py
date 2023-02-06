@@ -1017,7 +1017,7 @@ class Checkpointer(object):
           self._parameter_infos, ckpt_state_dict)
 
     # Skip Embeding Layer
-    logging.info('Skip Embeding Layer ckpt: %s', key)
+    logging.info('===========Skip Embeding Layer ckpt=======')
     dummy_written_state_dict = state_utils.intersect_state(
         dummy_written_state_dict, ckpt_state_dict)
     restore_parameter_infos = state_utils.intersect_state(
