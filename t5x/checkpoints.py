@@ -1016,6 +1016,10 @@ class Checkpointer(object):
       restore_parameter_infos = state_utils.intersect_state(
           self._parameter_infos, ckpt_state_dict)
 
+    ckpt_state_dict_flat = state_utils.flatten_state_dict(
+        ckpt_state_dict)
+    for key in ckpt_state_dict_flat.keys():
+      logging.info('ckpt_state_dict_flat: %s', key)
     # Skip Embeding Layer
     logging.info('===========Skip Embeding Layer ckpt=======')
     dummy_written_state_dict = state_utils.intersect_state(
