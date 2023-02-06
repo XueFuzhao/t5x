@@ -1018,8 +1018,12 @@ class Checkpointer(object):
 
     ckpt_state_dict_flat = state_utils.flatten_state_dict(
         ckpt_state_dict)
-    for key in ckpt_state_dict_flat.keys():
-      logging.info('ckpt_state_dict_flat: %s', key)
+    ckpt_state_dict_flat_copy = ckpt_state_dict_flat.copy()
+    for key in ckpt_state_dict_flat_copy.keys():
+      if 'token' in key:
+        ckpt_state_dict_flat.pop(key)
+    state_dict_flat = traverse_util.unflatten_dict(ckpt_state_dict_flat, sep="/")
+      # logging.info('ckpt_state_dict_flat: %s', key)
     # Skip Embeding Layer
     logging.info('===========Skip Embeding Layer ckpt=======')
     dummy_written_state_dict = state_utils.intersect_state(
