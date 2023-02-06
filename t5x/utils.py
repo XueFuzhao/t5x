@@ -393,6 +393,10 @@ class LegacyCheckpointManager(orbax.checkpoint.CheckpointManager):
     for path in paths:
       logging.info('Initializing parameters from specific T5X checkpoint %s',
                    path)
+      if path == 'target/token_embedder/embedding':
+          logging.info('Skip parameters from T5X checkpoint %s',
+                   path)
+          continue
       restored.append(
           self._checkpointer.restore(
               path=path,
