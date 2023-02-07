@@ -1027,7 +1027,7 @@ class Checkpointer(object):
       #   logging.info('Restoring key from ckpt: %s', key)
 
 
-    state_dict_flat = traverse_util.unflatten_dict(ckpt_state_dict_flat, sep="/")
+    ckpt_state_dict = traverse_util.unflatten_dict(ckpt_state_dict_flat, sep="/")
       # logging.info('ckpt_state_dict_flat: %s', key)
     # Skip Embeding Layer
     logging.info('===========Skip Embeding Layer ckpt=======')
