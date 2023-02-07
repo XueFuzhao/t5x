@@ -576,7 +576,10 @@ class MoEEmbed(nn.Module):
           routing_rng = self.make_rng('dropout')
           embed_select_decisions = jax.random.choice(routing_rng,
                             jnp.arange(0,self.moe_emb_num),
-                            shape=[inputs.shape[0],2])
+                            shape=[1,2],
+                            replace=False)
+          embed_select_decisions = jnp.repeat(embed_select_decisions, self.moe_emb_num, axis=0)
+          
           embed_select_decision_1 = embed_select_decisions[:,0]
           embed_select_decision_2 = embed_select_decisions[:,1]
                             
