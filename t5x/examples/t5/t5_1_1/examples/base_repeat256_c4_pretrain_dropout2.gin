@@ -13,7 +13,7 @@ MIXTURE_OR_TASK_NAME = "c4_v220_span_corruption"
 USE_CACHED_TASKS = False
 TASK_FEATURE_LENGTHS = {"inputs": 512, "targets": 114}
 TRAIN_STEPS = 524288
-DROPOUT_RATE = 0.1
+DROPOUT_RATE = 0.2
 BATCH_SIZE = 128
 
 train/utils.DatasetConfig:
