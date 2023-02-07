@@ -571,14 +571,15 @@ class MoEEmbed(nn.Module):
         if deterministic:
           # Using the first and second MoE during inference.
           embed_select_decision_1 = jnp.zeros([inputs.shape[0]], self.dtype)
-          embed_select_decision_2 = jnp.ones([inputs.shape[0]], self.dtype)
+          embed_select_decision_2 = jnp.zeros([inputs.shape[0]], self.dtype) + self.moe_emb_num//2
         else:
           routing_rng = self.make_rng('dropout')
-          embed_select_decision = jax.random.choice(routing_rng,
-                            jnp.arange(0,self.moe_emb_num),
-                            shape=[2, inputs.shape[0]])
-          embed_select_decision_1 = embed_select_decision[0,:]
-          embed_select_decision_2 = embed_select_decision[1,:]
+          embed_select_decision_1 = jax.random.choice(routing_rng,
+                            jnp.arange(0,self.moe_emb_num//2),
+                            shape=[inputs.shape[0]])
+          embed_select_decision_2 = jax.random.choice(routing_rng,
+                            jnp.arange(self.moe_emb_num//2, self.moe_emb_num),
+                            shape=[inputs.shape[0]])
                             
         embed_select_decision_1 = with_sharding_constraint(embed_select_decision_1, ('batch',))
         embed_select_decision_2 = with_sharding_constraint(embed_select_decision_2, ('batch',))
