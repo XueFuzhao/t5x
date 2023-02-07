@@ -1027,14 +1027,14 @@ class Checkpointer(object):
 #       #   logging.info('Restoring key from ckpt: %s', key)
 
 
-    ckpt_state_dict = traverse_util.unflatten_dict(ckpt_state_dict_flat, sep="/")
+#     ckpt_state_dict = traverse_util.unflatten_dict(ckpt_state_dict_flat, sep="/")
       # logging.info('ckpt_state_dict_flat: %s', key)
     # Skip Embeding Layer
-    logging.info('===========Skip Embeding Layer ckpt=======')
-    dummy_written_state_dict = state_utils.intersect_state(
-        dummy_written_state_dict, ckpt_state_dict)
-    restore_parameter_infos = state_utils.intersect_state(
-        self._parameter_infos, ckpt_state_dict)
+#     logging.info('===========Skip Embeding Layer ckpt=======')
+#     dummy_written_state_dict = state_utils.intersect_state(
+#         dummy_written_state_dict, ckpt_state_dict)
+#     restore_parameter_infos = state_utils.intersect_state(
+#         self._parameter_infos, ckpt_state_dict)
       
     restore_parameter_infos_flat = state_utils.flatten_state_dict(
         restore_parameter_infos)
