@@ -21,3 +21,10 @@ train/utils.DatasetConfig:
 
 train_script.train:
   eval_period = 2000
+
+
+utils.CheckpointConfig:
+  restore = @utils.RestoreCheckpointConfig()
+
+utils.RestoreCheckpointConfig:
+  fallback_to_scratch = True
