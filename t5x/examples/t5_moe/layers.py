@@ -565,9 +565,9 @@ class MoEEmbed(nn.Module):
     if not jnp.issubdtype(inputs.dtype, jnp.integer):
       raise ValueError('Input type must be an integer or unsigned integer.')
     
-    embed_select_decision_1, embed_select_decision_2 = embed_select_decisions
+    
     if self.one_hot:
-      if embed_select_decision_1 is None or embed_select_decision_2 is None:
+      if embed_select_decision is None:
         if deterministic:
           # Using the first and second MoE during inference.
           embed_select_decision_1 = jnp.zeros([inputs.shape[0]], self.dtype)
@@ -585,6 +585,9 @@ class MoEEmbed(nn.Module):
         moe_iota = lax.iota(jnp.int32, self.moe_emb_num)
         embed_select_decision_1 = jnp.array(embed_select_decision_1[..., jnp.newaxis] == moe_iota, dtype=self.dtype)
         embed_select_decision_2 = jnp.array(embed_select_decision_2[..., jnp.newaxis] == moe_iota, dtype=self.dtype)
+      else:
+        embed_select_decision_1, embed_select_decision_2 = embed_select_decisions
+
       embed_select_decision_1 = with_sharding_constraint(embed_select_decision_1, ('batch', 'moe_embed'))
       embed_select_decision_2 = with_sharding_constraint(embed_select_decision_2, ('batch', 'moe_embed'))
       iota = lax.iota(jnp.int32, self.num_embeddings)
