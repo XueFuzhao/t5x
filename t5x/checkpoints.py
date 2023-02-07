@@ -1016,15 +1016,15 @@ class Checkpointer(object):
       restore_parameter_infos = state_utils.intersect_state(
           self._parameter_infos, ckpt_state_dict)
 
-    ckpt_state_dict_flat = state_utils.flatten_state_dict(
-        ckpt_state_dict)
-    ckpt_state_dict_flat_copy = ckpt_state_dict_flat.copy()
-    for key in ckpt_state_dict_flat_copy.keys():
-      if 'token' in key:
-        ckpt_state_dict_flat.pop(key)
-        logging.info('Skip: %s', key)
-      # else:
-      #   logging.info('Restoring key from ckpt: %s', key)
+#     ckpt_state_dict_flat = state_utils.flatten_state_dict(
+#         ckpt_state_dict)
+#     ckpt_state_dict_flat_copy = ckpt_state_dict_flat.copy()
+#     for key in ckpt_state_dict_flat_copy.keys():
+#       if 'token' in key:
+#         ckpt_state_dict_flat.pop(key)
+#         logging.info('Skip: %s', key)
+#       # else:
+#       #   logging.info('Restoring key from ckpt: %s', key)
 
 
     ckpt_state_dict = traverse_util.unflatten_dict(ckpt_state_dict_flat, sep="/")
@@ -1056,8 +1056,8 @@ class Checkpointer(object):
         lazy_parameters=lazy_parameters)
 
     
-    logging.info('===========fallback_state=======')
-    print(fallback_state)
+    # logging.info('===========fallback_state=======')
+    # print(fallback_state)
     # If `fallback_state` was specified, then fill the missing parameters.
     if fallback_state is not None:
       state_dict = state_utils.merge_state(state_dict, fallback_state)
