@@ -550,7 +550,7 @@ class MoEEmbed(nn.Module):
 
   def __call__(self, inputs: Array,
                deterministic: bool = False,
-               embed_select_decision: Optional[Array] = None) -> Array:
+               embed_select_decisions: Optional[Any] = None) -> Array:
     """Embeds the inputs along the last dimension.
 
     Args:
@@ -565,10 +565,11 @@ class MoEEmbed(nn.Module):
     if not jnp.issubdtype(inputs.dtype, jnp.integer):
       raise ValueError('Input type must be an integer or unsigned integer.')
     
-    # Using the first MoE during inference.
+    embed_select_decision_1, embed_select_decision_2 = embed_select_decisions
     if self.one_hot:
       if embed_select_decision_1 is None or embed_select_decision_2 is None:
         if deterministic:
+          # Using the first and second MoE during inference.
           embed_select_decision_1 = jnp.zeros([inputs.shape[0]], self.dtype)
           embed_select_decision_2 = jnp.ones([inputs.shape[0]], self.dtype)
         else:
@@ -579,10 +580,6 @@ class MoEEmbed(nn.Module):
           embed_select_decision_1 = embed_select_decision[0,:]
           embed_select_decision_2 = embed_select_decision[1,:]
                             
-#           embed_select_decision_1 = jax.random.randint(key=routing_rng,
-#                                                  shape=[inputs.shape[0]],
-#                                                  minval=0,
-#                                                  maxval=self.moe_emb_num)
         embed_select_decision_1 = with_sharding_constraint(embed_select_decision_1, ('batch',))
         embed_select_decision_2 = with_sharding_constraint(embed_select_decision_2, ('batch',))
         moe_iota = lax.iota(jnp.int32, self.moe_emb_num)
@@ -598,41 +595,11 @@ class MoEEmbed(nn.Module):
       output_2 = jnp.einsum('blme,bm->ble', output, embed_select_decision_2)
       output = output_1 - output_2 
       output = with_sharding_constraint(output, ('batch', 'length', 'embed'))
-
-    '''# Mering MoE during infernce.
-    if self.one_hot:
-      if deterministic:
-          # This embed_select_decision will not be really used during inference.
-          if embed_select_decision is None:
-            embed_select_decision = jnp.zeros([inputs.shape[0]], self.dtype)
-          
-          embeddings = jax.numpy.mean(jnp.asarray(self.embedding, self.dtype), axis=0)
-          embeddings = with_sharding_constraint(embeddings, ('vocab', 'embed'))
-          iota = lax.iota(jnp.int32, self.num_embeddings)
-          one_hot = jnp.array(inputs[..., jnp.newaxis] == iota, dtype=self.dtype)
-          output = jnp.dot(one_hot, jnp.asarray(embeddings, self.dtype))
-      else:
-          if embed_select_decision is None:
-            routing_rng = self.make_rng('dropout')
-            embed_select_decision = jax.random.randint(key=routing_rng,
-                                                 shape=[inputs.shape[0]],
-                                                 minval=0,
-                                                 maxval=self.moe_emb_num)
-            embed_select_decision = with_sharding_constraint(embed_select_decision, ('batch',))
-            moe_iota = lax.iota(jnp.int32, self.moe_emb_num)
-            embed_select_decision = jnp.array(embed_select_decision[..., jnp.newaxis] == moe_iota, dtype=self.dtype)
-          embed_select_decision = with_sharding_constraint(embed_select_decision, ('batch', 'moe_embed'))
-          iota = lax.iota(jnp.int32, self.num_embeddings)
-          one_hot = jnp.array(inputs[..., jnp.newaxis] == iota, dtype=self.dtype)
-
-          output = jnp.dot(one_hot, jnp.asarray(self.embedding, self.dtype))
-          output = jnp.einsum('blme,bm->ble', output, embed_select_decision)
-          output = with_sharding_constraint(output, ('batch', 'length', 'embed'))'''
       
     else:
       output = jnp.asarray(self.embedding, self.dtype)[inputs]
       output = with_sharding_constraint(output, ('batch', 'length', 'embed'))
-    return output, embed_select_decision
+    return output, (embed_select_decision_1, embed_select_decision_2)
 
   def attend(self, query: Array) -> Array:
     """Attend over the embedding using a query array.
