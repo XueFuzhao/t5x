@@ -550,7 +550,7 @@ class MoEEmbed(nn.Module):
 
   def __call__(self, inputs: Array,
                deterministic: bool = False,
-               embed_select_decisions: Optional[Any] = None) -> Array:
+               embed_select_decision: Optional[Any] = None) -> Array:
     """Embeds the inputs along the last dimension.
 
     Args:
@@ -586,8 +586,8 @@ class MoEEmbed(nn.Module):
         moe_iota = lax.iota(jnp.int32, self.moe_emb_num)
         embed_select_decision_1 = jnp.array(embed_select_decision_1[..., jnp.newaxis] == moe_iota, dtype=self.dtype)
         embed_select_decision_2 = jnp.array(embed_select_decision_2[..., jnp.newaxis] == moe_iota, dtype=self.dtype)
-      else:
-        embed_select_decision_1, embed_select_decision_2 = embed_select_decisions
+      elif embed_select_decision is not None:
+        embed_select_decision_1, embed_select_decision_2 = embed_select_decision
 
       embed_select_decision_1 = with_sharding_constraint(embed_select_decision_1, ('batch', 'moe_embed'))
       embed_select_decision_2 = with_sharding_constraint(embed_select_decision_2, ('batch', 'moe_embed'))
