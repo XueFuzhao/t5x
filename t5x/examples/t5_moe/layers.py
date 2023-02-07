@@ -599,7 +599,7 @@ class MoEEmbed(nn.Module):
       output = jnp.dot(one_hot, jnp.asarray(self.embedding, self.dtype))
       output_1 = jnp.einsum('blme,bm->ble', output, embed_select_decision_1)
       output_2 = jnp.einsum('blme,bm->ble', output, embed_select_decision_2)
-      output = output_1 - output_2 
+      output = jnp.abs(output_1 - output_2) 
       output = with_sharding_constraint(output, ('batch', 'length', 'embed'))
       
     else:
