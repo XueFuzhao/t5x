@@ -21,7 +21,4 @@ train/utils.DatasetConfig:
 
 train_script.train:
   eval_period = 2000
-Footer
-© 2023 GitHub, Inc.
-Footer navigation
-Terms
+
