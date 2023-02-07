@@ -1055,6 +1055,9 @@ class Checkpointer(object):
         restore_parameter_infos=restore_parameter_infos,
         lazy_parameters=lazy_parameters)
 
+    
+    logging.info('===========fallback_state=======')
+    print(fallback_state)
     # If `fallback_state` was specified, then fill the missing parameters.
     if fallback_state is not None:
       state_dict = state_utils.merge_state(state_dict, fallback_state)
