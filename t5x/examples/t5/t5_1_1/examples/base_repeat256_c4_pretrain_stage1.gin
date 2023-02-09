@@ -20,4 +20,4 @@ train/utils.DatasetConfig:
   split = 'train[:310635]'
 
 train_script.train:
-  eval_period = 2000
+  eval_period = 20000
