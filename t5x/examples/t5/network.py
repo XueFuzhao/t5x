@@ -14,7 +14,7 @@
 
 """T5.1.1 Transformer model."""
 
-from typing import Any, Sequence
+from typing import Any, Sequence, Optional
 
 from flax import linen as nn
 from flax import struct
