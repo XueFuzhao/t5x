@@ -37,12 +37,48 @@ class T5Config:
   # Activation functions are retrieved from Flax.
   mlp_activations: Sequence[str] = ('relu',)
   dropout_rate: float = 0.1
+  layerdrop_rate: float = 0.0
   # If `True`, the embedding weights are used in the decoder output layer.
   logits_via_embedding: bool = False
   # Whether to accumulate attention logits in float32 regardless of dtype.
   float32_attention_logits: bool = False
 
 
+class StochasticDepth(nn.Module):
+  """Performs layer-dropout (also known as stochastic depth).
+  Described in
+  Huang & Sun et al, "Deep Networks with Stochastic Depth", 2016
+  https://arxiv.org/abs/1603.09382
+  Attributes:
+    rate: the layer dropout probability (_not_ the keep rate!).
+    deterministic: If false (e.g. in training) the inputs are scaled by `1 / (1
+      - rate)` and the layer dropout is applied, whereas if true (e.g. in
+      evaluation), no stochastic depth is applied and the inputs are returned as
+      is.
+  """
+  rate: float = 0.0
+  deterministic: Optional[bool] = None
+
+  @nn.compact
+  def __call__(self,
+               x: jnp.ndarray,
+               deterministic: Optional[bool] = None) -> jnp.ndarray:
+    """Applies a stochastic depth mask to the inputs.
+    Args:
+      x: Input tensor.
+      deterministic: If false (e.g. in training) the inputs are scaled by `1 /
+        (1 - rate)` and the layer dropout is applied, whereas if true (e.g. in
+        evaluation), no stochastic depth is applied and the inputs are returned
+        as is.
+    Returns:
+      The masked inputs reweighted to preserve mean.
+    """
+    broadcast_dims = range(1, x.ndim)
+    return nn.Dropout(
+        rate=self.rate, broadcast_dims=broadcast_dims)(x, deterministic)
+    
+    
+    
 class EncoderLayer(nn.Module):
   """Transformer encoder layer."""
   config: T5Config
@@ -73,6 +109,9 @@ class EncoderLayer(nn.Module):
     x = nn.Dropout(
         rate=cfg.dropout_rate, broadcast_dims=(-2,))(
             x, deterministic=deterministic)
+    x = StochasticDepth(
+        rate=cfg.layerdrop_rate
+    )(x, deterministic=deterministic)
     x = x + inputs
 
     # MLP block.
@@ -88,6 +127,9 @@ class EncoderLayer(nn.Module):
     y = nn.Dropout(
         rate=cfg.dropout_rate, broadcast_dims=(-2,))(
             y, deterministic=deterministic)
+    y = StochasticDepth(
+        rate=cfg.layerdrop_rate
+    )(y, deterministic=deterministic)
     y = y + x
 
     return y
@@ -135,6 +177,9 @@ class DecoderLayer(nn.Module):
     x = nn.Dropout(
         rate=cfg.dropout_rate, broadcast_dims=(-2,))(
             x, deterministic=deterministic)
+    x = StochasticDepth(
+        rate=cfg.layerdrop_rate
+    )(x, deterministic=deterministic)
     x = x + inputs
 
     # Encoder-Decoder block.
@@ -152,6 +197,9 @@ class DecoderLayer(nn.Module):
     y = nn.Dropout(
         rate=cfg.dropout_rate, broadcast_dims=(-2,))(
             y, deterministic=deterministic)
+    y = StochasticDepth(
+        rate=cfg.layerdrop_rate
+    )(y, deterministic=deterministic)
     y = y + x
 
     # MLP block.
@@ -166,6 +214,9 @@ class DecoderLayer(nn.Module):
     z = nn.Dropout(
         rate=cfg.dropout_rate, broadcast_dims=(-2,))(
             z, deterministic=deterministic)
+    z = StochasticDepth(
+        rate=cfg.layerdrop_rate
+    )(z, deterministic=deterministic)
     z = z + y
 
     return z
