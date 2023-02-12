@@ -83,6 +83,7 @@ class EncoderLayer(nn.Module):
   """Transformer encoder layer."""
   config: T5Config
   relative_embedding: nn.Module
+  layer_id: int = 0
 
   @nn.compact
   def __call__(self, inputs, encoder_mask=None, deterministic=False):
@@ -110,7 +111,7 @@ class EncoderLayer(nn.Module):
         rate=cfg.dropout_rate, broadcast_dims=(-2,))(
             x, deterministic=deterministic)
     x = StochasticDepth(
-        rate=cfg.layerdrop_rate
+        rate=cfg.layerdrop_rate * (self.layer_id / cfg.num_encoder_layers)
     )(x, deterministic=deterministic)
     x = x + inputs
 
@@ -128,7 +129,7 @@ class EncoderLayer(nn.Module):
         rate=cfg.dropout_rate, broadcast_dims=(-2,))(
             y, deterministic=deterministic)
     y = StochasticDepth(
-        rate=cfg.layerdrop_rate
+        rate=cfg.layerdrop_rate * (self.layer_id / cfg.num_encoder_layers)
     )(y, deterministic=deterministic)
     y = y + x
 
@@ -139,6 +140,7 @@ class DecoderLayer(nn.Module):
   """Transformer decoder layer that attends to the encoder."""
   config: T5Config
   relative_embedding: nn.Module
+  layer_id: int = 0
 
   @nn.compact
   def __call__(self,
@@ -178,7 +180,7 @@ class DecoderLayer(nn.Module):
         rate=cfg.dropout_rate, broadcast_dims=(-2,))(
             x, deterministic=deterministic)
     x = StochasticDepth(
-        rate=cfg.layerdrop_rate
+        rate=cfg.layerdrop_rate * (self.layer_id / cfg.num_decoder_layers)
     )(x, deterministic=deterministic)
     x = x + inputs
 
@@ -198,7 +200,7 @@ class DecoderLayer(nn.Module):
         rate=cfg.dropout_rate, broadcast_dims=(-2,))(
             y, deterministic=deterministic)
     y = StochasticDepth(
-        rate=cfg.layerdrop_rate
+        rate=cfg.layerdrop_rate * (self.layer_id / cfg.num_decoder_layers)
     )(y, deterministic=deterministic)
     y = y + x
 
@@ -215,7 +217,7 @@ class DecoderLayer(nn.Module):
         rate=cfg.dropout_rate, broadcast_dims=(-2,))(
             z, deterministic=deterministic)
     z = StochasticDepth(
-        rate=cfg.layerdrop_rate
+        rate=cfg.layerdrop_rate * (self.layer_id / cfg.num_encoder_layers)
     )(z, deterministic=deterministic)
     z = z + y
 
@@ -253,7 +255,7 @@ class Encoder(nn.Module):
     for lyr in range(cfg.num_encoder_layers):
       # [batch, length, emb_dim] -> [batch, length, emb_dim]
       x = EncoderLayer(
-          config=cfg, relative_embedding=rel_emb,
+          config=cfg, relative_embedding=rel_emb, layer_id=lyr,
           name=f'layers_{lyr}')(x, encoder_mask, deterministic)
 
     x = layers.LayerNorm(dtype=cfg.dtype, name='encoder_norm')(x)
@@ -296,7 +298,7 @@ class Decoder(nn.Module):
     for lyr in range(cfg.num_decoder_layers):
       # [batch, length, emb_dim] -> [batch, length, emb_dim]
       y = DecoderLayer(
-          config=cfg, relative_embedding=rel_emb, name=f'layers_{lyr}')(
+          config=cfg, relative_embedding=rel_emb, layer_id=lyr, name=f'layers_{lyr}')(
               y,
               encoded,
               decoder_mask=decoder_mask,
