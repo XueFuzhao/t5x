@@ -14,6 +14,7 @@ USE_CACHED_TASKS = False
 TASK_FEATURE_LENGTHS = {"inputs": 512, "targets": 512}
 TRAIN_STEPS = 524288
 BATCH_SIZE = 128
+DROPOUT_RATE = 0.0
 
 train/utils.DatasetConfig:
   split = 'train[:79522645]'
