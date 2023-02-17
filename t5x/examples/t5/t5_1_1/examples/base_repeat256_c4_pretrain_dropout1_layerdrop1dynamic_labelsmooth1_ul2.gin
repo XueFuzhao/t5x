@@ -4,6 +4,7 @@ import t5.data.mixtures
 import __main__ as train_script
 import seqio
 from t5x import utils
+from t5x.examples.t5 import network
 
 
 include 't5x/examples/t5/t5_1_1/base.gin'
