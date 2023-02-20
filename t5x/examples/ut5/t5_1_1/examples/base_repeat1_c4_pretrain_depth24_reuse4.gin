@@ -26,4 +26,4 @@ train_script.train:
 network.T5Config:
   num_encoder_layers = 12
   num_decoder_layers = 12
-  layer_reuse = 2
+  layer_reuse = 4
