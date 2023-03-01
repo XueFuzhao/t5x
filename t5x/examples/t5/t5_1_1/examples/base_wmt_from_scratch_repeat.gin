@@ -56,7 +56,7 @@ utils.SaveCheckpointConfig:
 # `num_decodes` is equivalent to a beam size in a beam search decoding.
 models.EncoderDecoderModel.predict_batch_with_aux.num_decodes = 4
 
-partitioning.PjitPartitioner.num_partitions = 2
+partitioning.PjitPartitioner.num_partitions = 1
 
 utils.create_learning_rate_scheduler:
   factors = 'constant * rsqrt_decay'
