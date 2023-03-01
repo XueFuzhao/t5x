@@ -19,7 +19,7 @@ train/utils.DatasetConfig:
   batch_size = 128
   use_cached = False
   pack = True
-  split = 'train[:1%]'
+  split = 'train'
   seed = 0
 
 train_eval/utils.DatasetConfig:
