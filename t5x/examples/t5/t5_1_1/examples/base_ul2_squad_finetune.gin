@@ -14,7 +14,7 @@ BATCH_SIZE = 128
 MIXTURE_OR_TASK_NAME = "ul2_squad_v010_allanswers"
 TASK_FEATURE_LENGTHS = {'inputs': 512, 'targets': 128}
 DROPOUT_RATE = 0.1
-TRAIN_STEPS = 624288  # 524288 pre-trained steps + 200000 fine-tuning steps.
+TRAIN_STEPS = 544288  # 524288 pre-trained steps + 20000 fine-tuning steps.
 USE_CACHED_TASKS = False
 
 # INITIAL_CHECKPOINT_PATH = "gs://t5-data/pretrained_models/t5x/t5_1_1_base/checkpoint_1000000"
