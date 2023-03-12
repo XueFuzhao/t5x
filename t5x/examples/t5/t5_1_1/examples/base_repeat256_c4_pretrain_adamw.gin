@@ -22,7 +22,7 @@ train/utils.DatasetConfig:
   split = 'train[:310635]'
 
 train_script.train:
-  eval_period = 5000
+  eval_period = 2000
   
 # In this case, we choose to switch to the AdamW optimizer with gradient clip.
 OPTIMIZER = @optimizers.chain()
