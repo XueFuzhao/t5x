@@ -33,7 +33,7 @@ optimizers.chain:
 optax.clip:
   max_delta = 1.0
 
-optax.adamw:
+# optax.adamw:
   # Unlike Adafactor, most optimizers require to specify
   # `learning_rate`. `learning_rate` accepts a float number (e.g., 1e-4) or
   # a schedule function, which should take an argument `step` and output
@@ -41,7 +41,7 @@ optax.adamw:
   # As for choices of schedule functions, we can either use T5x
   # learning rate scheduler, i.e., utils.create_learning_rate_scheduler, or
   # optax's native schedule functions, e.g., warmup_cosine_decay_schedule.
-  learning_rate = @optax.warmup_cosine_decay_schedule()
+#   learning_rate = @optax.warmup_cosine_decay_schedule()
 
 # optax.warmup_cosine_decay_schedule:
 #   init_value = 0.0
@@ -53,7 +53,7 @@ optax.adamw:
 
 # Below is an example of using the T5X's schedule functions.
 # Feel free to uncomment to try.
-optax.adamw:
+optax.lamb:
   learning_rate = @utils.create_learning_rate_scheduler()
 
 utils.create_learning_rate_scheduler:
