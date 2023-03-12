@@ -33,7 +33,7 @@ optimizers.chain:
 optax.clip:
   max_delta = 1.0
 
-optax.adamw:
+optax.adam:
   # Unlike Adafactor, most optimizers require to specify
   # `learning_rate`. `learning_rate` accepts a float number (e.g., 1e-4) or
   # a schedule function, which should take an argument `step` and output
