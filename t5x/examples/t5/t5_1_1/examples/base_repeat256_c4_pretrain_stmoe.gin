@@ -5,6 +5,9 @@ import __main__ as train_script
 import seqio
 import flaxformer
 from t5x import utils
+import gin
+
+gin.add_config_file_search_path('flaxformer')
 
 
 include 'flaxformer/t5x/configs/moe/models/st_moe_base.gin'
