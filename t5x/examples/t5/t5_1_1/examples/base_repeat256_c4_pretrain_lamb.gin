@@ -58,5 +58,5 @@ optax.lamb:
 
 utils.create_learning_rate_scheduler:
   factors = 'constant * rsqrt_decay'
-  base_learning_rate = 0.01
+  base_learning_rate = 0.5
   warmup_steps = 10000  # 10k to keep consistent with T5/MTF defaults.
