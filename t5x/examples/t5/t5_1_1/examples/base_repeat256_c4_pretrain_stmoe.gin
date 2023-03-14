@@ -3,6 +3,7 @@ from __gin__ import dynamic_registration
 import t5.data.mixtures
 import __main__ as train_script
 import seqio
+import flaxformer
 from t5x import utils
 
 
