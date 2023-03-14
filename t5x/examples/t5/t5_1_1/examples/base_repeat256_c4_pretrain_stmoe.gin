@@ -6,10 +6,8 @@ import seqio
 import flaxformer
 from t5x import utils
 
-gin.add_config_file_search_path('flaxformer')
 
-
-include 'flaxformer/t5x/configs/moe/models/st_moe_base.gin'
+include 'flaxformer/flaxformer/t5x/configs/moe/models/st_moe_base.gin'
 include 't5x/configs/runs/pretrain.gin'
 
 MIXTURE_OR_TASK_NAME = "c4_v220_span_corruption"
