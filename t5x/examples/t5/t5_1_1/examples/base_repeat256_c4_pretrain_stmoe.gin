@@ -17,6 +17,8 @@ TRAIN_STEPS = 524288
 DROPOUT_RATE = 0.0
 BATCH_SIZE = 128
 
+NUM_MODEL_PARTITIONS = 1
+
 train/utils.DatasetConfig:
   split = 'train[:310635]'
 
