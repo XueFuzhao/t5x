@@ -40,6 +40,7 @@ import warnings
 from absl import logging
 import clu.data
 from etils import epath
+import flax
 from flax import serialization
 from flax import traverse_util
 import jax
@@ -154,8 +155,25 @@ class _ParameterInfo:
   axes: Optional[partitioning.PartitionSpec] = None
 
 
-orbax.checkpoint.utils.register_ts_spec_for_serialization()
+# orbax.checkpoint.utils.register_ts_spec_for_serialization()
 
+def register_ts_spec_for_serialization():
+  # Register functions with flax.serialization to handle `ts.Spec`.
+  def is_dict(s):
+    return isinstance(s, (dict, flax.core.FrozenDict))
+
+  serialization.register_serialization_state(
+      ts.Spec,
+      ty_to_state_dict=lambda t: t.to_json(),
+      # The parameter may have been written to tensorstore or msgpack.
+      # If the former, a dict of the spec will be stored. If the latter it will
+      # be the value itself.
+      ty_from_state_dict=lambda t, s: ts.Spec(s) if is_dict(s) else s,
+      override=True,
+  )
+
+
+register_ts_spec_for_serialization()
 
 def _run_future_tree(future_tree):
   """Block until all futures are resolved on this host."""
