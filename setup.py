@@ -38,7 +38,7 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     author='Google Inc.',
     author_email='no-reply@google.com',
-    url='http://github.com/google-research/t5x',
+    url='http://github.com/XueFuzhao/t5x',
     license='Apache 2.0',
     packages=setuptools.find_packages(),
     package_data={
