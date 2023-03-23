@@ -59,6 +59,7 @@ setuptools.setup(
         'orbax @ git+https://github.com/google/orbax#egg=orbax',
         'tensorflow-cpu >= 2.7',
         'tensorstore >= 0.1.20',
+        'tfds-nightly==4.6.0.dev202210040045',
         'seqio @ git+https://github.com/google/seqio#egg=seqio',
     ],
     extras_require={
@@ -80,7 +81,6 @@ setuptools.setup(
             'gdown==4.5.3',
             'best-download==0.0.9',
             'lm_dataformat==0.0.20',
-            'tfds-nightly==4.6.0.dev202210040045',
         ],
     },
     classifiers=[
