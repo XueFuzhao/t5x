@@ -58,7 +58,7 @@ setuptools.setup(
         'numpy',
         'orbax @ git+https://github.com/google/orbax#egg=orbax',
         'seqio @ git+https://github.com/google/seqio#egg=seqio',
-        'tensorflow-cpu',
+        'tensorflow-cpu >= 2.7',
         'tensorstore >= 0.1.20',
     ],
     extras_require={
