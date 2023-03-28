@@ -38,6 +38,7 @@ class T5Config:
   mlp_activations: Sequence[str] = ('relu',)
   dropout_rate: float = 0.1
   layerdrop_rate: float = 0.0
+  strong_dropout: bool = False
   # If `True`, the embedding weights are used in the decoder output layer.
   logits_via_embedding: bool = False
   # Whether to accumulate attention logits in float32 regardless of dtype.
@@ -104,6 +105,7 @@ class EncoderLayer(nn.Module):
         dtype=cfg.dtype,
         head_dim=cfg.head_dim,
         dropout_rate=cfg.dropout_rate,
+        strong_dropout=cfg.strong_dropout,
         float32_logits=cfg.float32_attention_logits,
         name='attention')(
             x, x, encoder_mask, encoder_bias, deterministic=deterministic)
@@ -118,6 +120,10 @@ class EncoderLayer(nn.Module):
     # MLP block.
     y = layers.LayerNorm(dtype=cfg.dtype, name='pre_mlp_layer_norm')(x)
     # [batch, length, emb_dim] -> [batch, length, emb_dim]
+    if cfg.strong_dropout:
+      y = nn.Dropout(
+          rate=cfg.dropout_rate, broadcast_dims=(-2,))(
+              y, deterministic=deterministic)
     y = layers.MlpBlock(
         intermediate_dim=cfg.mlp_dim,
         activations=cfg.mlp_activations,
@@ -168,6 +174,7 @@ class DecoderLayer(nn.Module):
         dtype=cfg.dtype,
         head_dim=cfg.head_dim,
         dropout_rate=cfg.dropout_rate,
+        strong_dropout=cfg.strong_dropout,
         float32_logits=cfg.float32_attention_logits,
         name='self_attention')(
             x,
@@ -193,6 +200,7 @@ class DecoderLayer(nn.Module):
         dtype=cfg.dtype,
         head_dim=cfg.head_dim,
         dropout_rate=cfg.dropout_rate,
+        strong_dropout=cfg.strong_dropout,
         float32_logits=cfg.float32_attention_logits,
         name='encoder_decoder_attention')(
             y, encoded, encoder_decoder_mask, deterministic=deterministic)
@@ -206,6 +214,10 @@ class DecoderLayer(nn.Module):
 
     # MLP block.
     z = layers.LayerNorm(dtype=cfg.dtype, name='pre_mlp_layer_norm')(y)
+    if cfg.strong_dropout:
+      z = nn.Dropout(
+          rate=cfg.dropout_rate, broadcast_dims=(-2,))(
+              z, deterministic=deterministic)
     z = layers.MlpBlock(
         intermediate_dim=cfg.mlp_dim,
         activations=cfg.mlp_activations,
