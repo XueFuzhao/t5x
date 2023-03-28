@@ -145,6 +145,7 @@ class MultiHeadDotProductAttention(nn.Module):
   head_dim: int
   dtype: DType = jnp.float32
   dropout_rate: float = 0.
+  strong_dropout: bool = False
   kernel_init: Initializer = nn.initializers.variance_scaling(
       1.0, 'fan_in', 'normal')
   float32_logits: bool = False  # computes logits in float32 for stability.
@@ -201,6 +202,14 @@ class MultiHeadDotProductAttention(nn.Module):
 
     # Project inputs_q to multi-headed q/k/v
     # dimensions are then [batch, length, num_heads, head_dim]
+    if self.strong_dropout:
+        inputs_q = nn.Dropout(
+            rate=self.dropout_rate, broadcast_dims=(-2,))(
+                inputs_q, deterministic=deterministic)
+        inputs_kv = nn.Dropout(
+            rate=self.dropout_rate, broadcast_dims=(-2,))(
+                inputs_q, deterministic=deterministic)
+
     query = projection(kernel_init=query_init, name='query')(inputs_q)
     key = projection(kernel_init=self.kernel_init, name='key')(inputs_kv)
     value = projection(kernel_init=self.kernel_init, name='value')(inputs_kv)
@@ -208,6 +217,17 @@ class MultiHeadDotProductAttention(nn.Module):
     query = with_sharding_constraint(query, ('batch', 'length', 'heads', 'kv'))
     key = with_sharding_constraint(key, ('batch', 'length', 'heads', 'kv'))
     value = with_sharding_constraint(value, ('batch', 'length', 'heads', 'kv'))
+    
+    if self.strong_dropout:
+        query = nn.Dropout(
+            rate=self.dropout_rate, broadcast_dims=(-3,))(
+                query, deterministic=deterministic)
+        key = nn.Dropout(
+            rate=self.dropout_rate, broadcast_dims=(-3,))(
+                key, deterministic=deterministic)
+        value = nn.Dropout(
+            rate=self.dropout_rate, broadcast_dims=(-3,))(
+                value, deterministic=deterministic)
 
     if decode:
       # Detect if we're initializing by absence of existing cache data.
@@ -310,6 +330,10 @@ class MultiHeadDotProductAttention(nn.Module):
         float32_logits=self.float32_logits)
 
     # Back to the original inputs dimensions.
+    if self.strong_dropout:
+        x = nn.Dropout(
+            rate=self.dropout_rate, broadcast_dims=(-2,))(
+                x, deterministic=deterministic)
     out = DenseGeneral(
         features=inputs_q.shape[-1],  # output dim is set to the input dim.
         axis=(-2, -1),
