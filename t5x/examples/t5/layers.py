@@ -208,7 +208,7 @@ class MultiHeadDotProductAttention(nn.Module):
                 inputs_q, deterministic=deterministic)
         inputs_kv = nn.Dropout(
             rate=self.dropout_rate, broadcast_dims=(-2,))(
-                inputs_q, deterministic=deterministic)
+                inputs_kv, deterministic=deterministic)
 
     query = projection(kernel_init=query_init, name='query')(inputs_q)
     key = projection(kernel_init=self.kernel_init, name='key')(inputs_kv)
