@@ -1,0 +1,27 @@
+# Register necessary SeqIO Tasks/Mixtures.
+from __gin__ import dynamic_registration
+import t5.data.mixtures
+import __main__ as train_script
+import seqio
+import flaxformer
+from t5x import utils
+
+
+include 'flaxformer/flaxformer/t5x/configs/moe/models/st_moe_base.gin'
+include 't5x/contrib/moe/configs/runs/pretrain.gin'
+# include 't5x/configs/runs/pretrain.gin'
+
+MIXTURE_OR_TASK_NAME = "c4_v220_span_corruption"
+USE_CACHED_TASKS = False
+TASK_FEATURE_LENGTHS = {"inputs": 512, "targets": 114}
+TRAIN_STEPS = 32768
+DROPOUT_RATE = 0.0
+BATCH_SIZE = 128
+
+NUM_MODEL_PARTITIONS = 1
+
+train/utils.DatasetConfig:
+  split = 'train[:310635]'
+
+train_script.train:
+  eval_period = 5000
