@@ -11,12 +11,12 @@ include 't5x/configs/runs/pretrain.gin'
 MIXTURE_OR_TASK_NAME = "c4_v220_span_corruption"
 USE_CACHED_TASKS = False
 TASK_FEATURE_LENGTHS = {"inputs": 512, "targets": 114}
-TRAIN_STEPS = 524288
+TRAIN_STEPS = 32768
 DROPOUT_RATE = 0.0
 BATCH_SIZE = 128
 
 train/utils.DatasetConfig:
-  split = 'train[:32768]'
+  split = 'train[:310635]'
 
 train_script.train:
   eval_period = 2000
