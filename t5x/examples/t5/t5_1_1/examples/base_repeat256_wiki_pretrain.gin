@@ -2,6 +2,8 @@
 from __gin__ import dynamic_registration
 import t5.data.mixtures
 import __main__ as train_script
+import seqio
+from t5x import utils
 
 
 include 't5x/examples/t5/t5_1_1/base.gin'
