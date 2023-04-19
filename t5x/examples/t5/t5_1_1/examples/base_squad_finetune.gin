@@ -14,12 +14,17 @@ BATCH_SIZE = 128
 MIXTURE_OR_TASK_NAME = "squad_v010_allanswers"
 TASK_FEATURE_LENGTHS = {'inputs': 512, 'targets': 128}
 DROPOUT_RATE = 0.1
-TRAIN_STEPS = 624288  # 524288 pre-trained steps + 200000 fine-tuning steps.
+TRAIN_STEPS = 544288  # 524288 pre-trained steps + 200000 fine-tuning steps.
 USE_CACHED_TASKS = False
+
+
 
 # INITIAL_CHECKPOINT_PATH = "gs://t5-data/pretrained_models/t5x/t5_1_1_base/checkpoint_1000000"
 # INITIAL_CHECKPOINT_PATH = "gs://fuzhao/t5x/c4-base/steps_500K_20221125/checkpoint_524288"
-INITIAL_CHECKPOINT_PATH = "gs://fuzhao/t5x/c4-base-repeat256-dropout1/t5-500KSteps/checkpoint_524288"
+# INITIAL_CHECKPOINT_PATH = "gs://fuzhao/t5x/c4-base-repeat256-dropout1/t5-500KSteps/checkpoint_524288"
+INITIAL_CHECKPOINT_PATH = "gs://fuzhao/t5x/wiki-base-repeat256/t5-500KSteps/checkpoint_524288"
+
+
 
 # `LOSS_NORMALIZING_FACTOR`: When fine-tuning a model that was pre-trained
 # using Mesh Tensorflow (e.g. the public T5 / mT5 / ByT5 models), this should be
