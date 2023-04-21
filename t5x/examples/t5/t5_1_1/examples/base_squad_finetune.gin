@@ -22,7 +22,7 @@ USE_CACHED_TASKS = False
 # INITIAL_CHECKPOINT_PATH = "gs://t5-data/pretrained_models/t5x/t5_1_1_base/checkpoint_1000000"
 # INITIAL_CHECKPOINT_PATH = "gs://fuzhao/t5x/c4-base/steps_500K_20221125/checkpoint_524288"
 # INITIAL_CHECKPOINT_PATH = "gs://fuzhao/t5x/c4-base-repeat256-dropout1/t5-500KSteps/checkpoint_524288"
-INITIAL_CHECKPOINT_PATH = "gs://fuzhao/t5x/wiki-base-repeat256/t5-500KSteps/checkpoint_524288"
+INITIAL_CHECKPOINT_PATH = "gs://fuzhao/t5x/wiki-base-repeat1/t5-500KSteps/checkpoint_524288"
 
 
 
