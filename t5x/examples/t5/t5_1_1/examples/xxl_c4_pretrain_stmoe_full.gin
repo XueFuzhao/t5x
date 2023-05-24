@@ -9,17 +9,18 @@ from t5x import trainer
 from t5x.contrib.moe import trainer as moe_trainer
 
 
-include 'flaxformer/flaxformer/t5x/configs/moe/models/st_moe_base.gin'
+include 'flaxformer/flaxformer/t5x/configs/moe/models/st_moe_xxl.gin'
 include 't5x/contrib/moe/configs/runs/pretrain.gin'
 # include 't5x/configs/runs/pretrain.gin'
 
 MIXTURE_OR_TASK_NAME = "c4_v220_ul2"
 USE_CACHED_TASKS = False
-TASK_FEATURE_LENGTHS = {"inputs": 512, "targets": 114}
+TASK_FEATURE_LENGTHS = {"inputs": 512, "targets": 512}
 TRAIN_STEPS = 1000000
 DROPOUT_RATE = 0.0
 BATCH_SIZE = 2048
 
+NUM_EXPERT_PARTITIONS = 32
 NUM_MODEL_PARTITIONS = 8
 
 train/utils.DatasetConfig:
