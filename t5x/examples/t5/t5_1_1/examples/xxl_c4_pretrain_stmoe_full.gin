@@ -28,5 +28,5 @@ train/utils.DatasetConfig:
 train_script.train:
   eval_period = 5000
   
-moe_trainer.MoeTrainer:
-  num_microbatches = 4
+# moe_trainer.MoeTrainer:
+#   num_microbatches = 4
