@@ -62,5 +62,5 @@ utils.create_learning_rate_scheduler:
   warmup_steps = 10000  # 10k to keep consistent with T5/MTF defaults.
 
 # Keep slightly fewer checkpoints than pre-training defaults.
-utils.SaveCheckpointConfig.period = 5000
-utils.SaveCheckpointConfig.keep = 20
+utils.SaveCheckpointConfig.period = 20000
+utils.SaveCheckpointConfig.keep = 50
