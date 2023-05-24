@@ -1,4 +1,4 @@
-# Copyright 2022 The T5X Authors.
+# Copyright 2023 The T5X Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,29 @@ import tensorflow as tf
 
 
 
+@gin.configurable
+def get_gin_config_str(show_provenance: bool = False) -> str:
+  """Utility function retrieving configuration in string form.
+
+  This is only necessary to to provide a configurable name to toggle the
+  show_provenance parameter.
+
+  Args:
+    show_provenance: Flag indicating whether to show (where possible) the
+      provenance of configuration settings.
+
+  Returns:
+    Current gin configuration as string.
+  """
+  # The following ensures that existing configs will not fail on old gin version
+  # that do not have the show_provenance parameter yet and makes this feature
+  # opt-in.
+  if show_provenance:
+    return gin.config_str(show_provenance=True)
+  else:
+    return gin.config_str()
+
+
 def parse_gin_flags(gin_search_paths: Sequence[str],
                     gin_files: Sequence[str],
                     gin_bindings: Sequence[str],
@@ -39,7 +62,7 @@ def parse_gin_flags(gin_search_paths: Sequence[str],
       be relative to paths in `gin_search_paths`.
     gin_bindings: individual gin bindings to be applied after the gin files are
       parsed. Will be applied in order with conflicting settings being overriden
-      by later oens.
+      by later ones.
     skip_unknown: whether to ignore unknown bindings or raise an error (default
       behavior). Alternatively, a list of configurable names to skip if unknown.
     finalize_config: whether to finalize the config so that it cannot be
@@ -48,7 +71,6 @@ def parse_gin_flags(gin_search_paths: Sequence[str],
   # We import t5.data here since it includes gin configurable functions commonly
   # used by task modules.
   # TODO(adarob): Strip gin from t5.data and remove this import.
-  import t5.data  # pylint:disable=unused-import,g-import-not-at-top
   # Register .gin file search paths with gin
   for gin_file_path in gin_search_paths:
     gin.add_config_file_search_path(gin_file_path)
@@ -61,7 +83,7 @@ def parse_gin_flags(gin_search_paths: Sequence[str],
       skip_unknown=skip_unknown,
       finalize_config=finalize_config)
   logging.info('Gin Configuration:')
-  for line in gin.config_str().splitlines():
+  for line in get_gin_config_str().splitlines():
     logging.info('%s', line)
 
 
@@ -79,7 +101,7 @@ def rewrite_gin_args(args: Sequence[str]) -> Sequence[str]:
     arg = arg[6:]
     name, value = arg.split('=', maxsplit=1)
     r_arg = f'--gin_bindings={name} = {value}'
-    print(f'Rewritten gin arg: {r_arg}')
+    logging.info('Rewritten gin arg: %s', r_arg)
     return r_arg
 
   return [_rewrite_gin_arg(arg) for arg in args]
@@ -91,7 +113,7 @@ def summarize_gin_config(model_dir: str,
                          step: int):
   """Writes gin config to the model dir and TensorBoard summary."""
   if jax.process_index() == 0:
-    config_str = gin.config_str()
+    config_str = get_gin_config_str()
     tf.io.gfile.makedirs(model_dir)
     # Write the config as JSON.
     with tf.io.gfile.GFile(os.path.join(model_dir, 'config.gin'), 'w') as f:
